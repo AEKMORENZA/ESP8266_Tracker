@@ -30,7 +30,7 @@ with open(filepath) as fp:
 		encodedBSSID = BSSID.replace(':','%3A')
 		URL += encodedBSSID
 				
-		r = requests.get(URL, auth=('AIDd86d951dc8ff31f95e7dd52591dc6758','a0cc38907e4a9fbce0f0171a17fc9bb1'))
+		r = requests.get(URL, auth=('Wigle API Name','Wigle API Token'))
 		print r
 		j = r.json()
 				
