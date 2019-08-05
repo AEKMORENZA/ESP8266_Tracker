@@ -5,10 +5,36 @@ String lastBSSIDs[20] = {};
 bool checker = 0;
 int cont = 0;
 
+
+void leerSerie(){
+  String cmd = "";
+  while(Serial.available() > 0){
+    char c = Serial.read();
+    if ((c == '\n')||(c == '\r')){
+      Serial.print(cmd);
+      cmd = "";
+      procesarComando(cmd);      
+    }else cmd += c;
+  }
+}
+
+void procesarComando(String cmd){
+  //TBW
+}
+
+
 void setup()
 {
+  
   Serial.begin(115200);
-
+  //TBW
+  //Si hay puerto serie:
+  //Imprimir prompt de linea de comandos
+  //Imprimir comandos disponibles
+  //D = 'dump' volcado del archivo /BSSIDs.txt al puerto serie
+  //R = 'remove' elimina el archivo del sistema de ficheros del microcontrolador
+  //H = 'help' pinta lista de comandos disponibles
+  
   bool result = SPIFFS.begin();
   Serial.println("SPIFFS opened: " + result);
 
