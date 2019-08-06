@@ -20,28 +20,28 @@ void leerSerie(){
 
 void procesarComando(String cmd){
   //TBW
+  if (cmd.equalsIgnoreCase("d")){
+    imprimirArchivo("/BSSIDs.txt");
+  }
+  else if (cmd.equalsIgnoreCase("r")){
+    borrarArchivo("/BSSIDs.txt");
+  }
+  else if (cmd.equalsIgnoreCase("h")){
+    imprimirAyuda();
+  }
+  else Serial.println("Comando no valido, introduce H para ver una lista de comandos diponibles");
+}
+
+void imprimirAyuda(){
+  Serial.println("Comandos disponibles: ");
+  Serial.println("D = 'dump' volcado del archivo /BSSIDs.txt al puerto serie");
+  Serial.println("R = 'remove' elimina el archivo del sistema de ficheros del microcontrolador");
+  Serial.println("H = 'help' pinta lista de comandos disponibles");
 }
 
 
-void setup()
-{
-  
-  Serial.begin(115200);
-  //TBW
-  //Si hay puerto serie:
-  //Imprimir prompt de linea de comandos
-  //Imprimir comandos disponibles
-  //D = 'dump' volcado del archivo /BSSIDs.txt al puerto serie
-  //R = 'remove' elimina el archivo del sistema de ficheros del microcontrolador
-  //H = 'help' pinta lista de comandos disponibles
-  
-  bool result = SPIFFS.begin();
-  Serial.println("SPIFFS opened: " + result);
-
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-
-  File f = SPIFFS.open("/BSSIDs.txt", "r");
+void borrarArchivo(String filePath){
+  File f = SPIFFS.open(filePath, "w");
 
   delay(100);
 
@@ -49,7 +49,24 @@ void setup()
     Serial.println("File doesn't exist yet. Creating it");
 
     // open the file in write mode
-    File f = SPIFFS.open("/BSSIDs.txt", "a");
+    File f = SPIFFS.open(filePath, "w");
+    if (!f) {
+      Serial.println("file creation failed");
+    }
+  } 
+  f.close();
+}
+           
+void imprimirArchivo(String filePath){
+   File f = SPIFFS.open(filePath, "r");
+
+  delay(100);
+
+  if (!f) {
+    Serial.println("File doesn't exist yet. Creating it");
+
+    // open the file in write mode
+    File f = SPIFFS.open(filePath, "a");
     if (!f) {
       Serial.println("file creation failed");
     }
@@ -61,10 +78,31 @@ void setup()
       String line = f.readStringUntil('\n');
       Serial.println(line);
     }
-
   }
   f.close();
+}
+           
+void setup()
+{
+  
+  Serial.begin(115200);
+  //TBW
+  //Si hay puerto serie:
+  if(Serial){
+    Serial.print(">>> ");
+    leerSerie();    
+  }
+  //Imprimir prompt de linea de comandos
+  //Imprimir comandos disponibles
+  //D = 'dump' volcado del archivo /BSSIDs.txt al puerto serie
+  //R = 'remove' elimina el archivo del sistema de ficheros del microcontrolador
+  //H = 'help' pinta lista de comandos disponibles
+  
+  bool result = SPIFFS.begin();
+  Serial.println("SPIFFS opened: " + result);
 
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
   Serial.println("Setup done");
 }
 
