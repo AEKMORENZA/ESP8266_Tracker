@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 from lxml import etree
 from pykml.factory import KML_ElementMaker as KML
 
@@ -44,10 +45,12 @@ with open(filepath) as fp:
 			print "error:" + str(j['message'])
 				
 		print "\n"
-		
+	
+	timestr = time.strftime("%Y%m%d")
+	filename = timestr + ".kml"
 	#TBW cerrar el documento KML y escribir su contenido a un fichero .kml
 	print etree.tostring(etree.ElementTree(fld),pretty_print=True)	
 	kmlFile = etree.tostring(etree.ElementTree(fld),pretty_print=True)
-	k = open("ruta.kml","w")
+	k = open(filename,"w")
 	k.write(kmlFile)
 				
