@@ -158,11 +158,9 @@ void loop()
         delay(10);
         yield();
       }
-
     }
   }
   Serial.println("");
-
   delay(5000);
   yield();
 }
