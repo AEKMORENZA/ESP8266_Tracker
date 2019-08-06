@@ -8,25 +8,31 @@ int cont = 0;
 
 void leerSerie(){
   String cmd = "";
+  while(!Serial.available()){  
+    }
   while(Serial.available() > 0){
     char c = Serial.read();
     if ((c == '\n')||(c == '\r')){
-      Serial.print(cmd);
+      procesarComando(cmd);
       cmd = "";
-      procesarComando(cmd);      
     }else cmd += c;
   }
 }
 
 void procesarComando(String cmd){
-  //TBW
-  if (cmd.equalsIgnoreCase("d")){
+  Serial.print(cmd);
+  if (cmd == "\n"){
+  }
+  else if (cmd.equalsIgnoreCase("d")){
+    Serial.println("imprimir archivo");
     imprimirArchivo("/BSSIDs.txt");
   }
   else if (cmd.equalsIgnoreCase("r")){
+    Serial.println("borrar archivo");
     borrarArchivo("/BSSIDs.txt");
   }
   else if (cmd.equalsIgnoreCase("h")){
+    Serial.println("imprimir menu de ayuda");
     imprimirAyuda();
   }
   else Serial.println("Comando no valido, introduce H para ver una lista de comandos diponibles");
@@ -63,15 +69,9 @@ void imprimirArchivo(String filePath){
   delay(100);
 
   if (!f) {
-    Serial.println("File doesn't exist yet. Creating it");
-
-    // open the file in write mode
-    File f = SPIFFS.open(filePath, "a");
-    if (!f) {
-      Serial.println("file creation failed");
-    }
+    Serial.println("File doesn't exist");
   } else {
-    Serial.println("Acabamos de abrir el archivo");
+    Serial.println("Contenidos:");
     // we could open the file
     while (f.available()) {
       //Lets read line by line from the file
@@ -86,10 +86,11 @@ void setup()
 {
   
   Serial.begin(115200);
+  bool result = SPIFFS.begin();
   //TBW
   //Si hay puerto serie:
   if(Serial){
-    Serial.print(">>> ");
+    Serial.print("\n>>> ");
     leerSerie();    
   }
   //Imprimir prompt de linea de comandos
@@ -98,7 +99,6 @@ void setup()
   //R = 'remove' elimina el archivo del sistema de ficheros del microcontrolador
   //H = 'help' pinta lista de comandos disponibles
   
-  bool result = SPIFFS.begin();
   Serial.println("SPIFFS opened: " + result);
 
   WiFi.mode(WIFI_STA);
@@ -132,7 +132,7 @@ void loop()
     {
       if (WiFi.RSSI(i) > -70) {
         String BSSID_str = WiFi.BSSIDstr(i);
-        Serial.print("     BSSID = ");
+        Serial.print("BSSID = ");
         Serial.println(BSSID_str);
         checker = 0;
         for (int x = 0; x < arraySize ; x++) {
@@ -145,9 +145,7 @@ void loop()
           lastBSSIDs[cont] = BSSID_str;
           f.println(BSSID_str);
           f.close();
-          Serial.print("Tamaño de array lastBSSIDs = ");
-          Serial.println(arraySize);
-          Serial.println(lastBSSIDs[arraySize]);
+
           cont ++;
         }
         if (cont == 20){
