@@ -1,0 +1,5 @@
+﻿{
+  "sketch": "ESP8266_Scanner/ESP8266_Scanner.ino",
+  "board": "esp8266:esp8266:generic",
+  "output": "build"
+}

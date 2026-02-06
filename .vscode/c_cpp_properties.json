@@ -1,0 +1,28 @@
+﻿{
+  "configurations": [
+    {
+      "name": "ESP8266",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "C:/Users/34618/AppData/Local/Arduino15/packages/esp8266/hardware/esp8266/3.1.2/cores/esp8266",
+        "C:/Users/34618/AppData/Local/Arduino15/packages/esp8266/hardware/esp8266/3.1.2/variants/**",
+        "C:/Users/34618/AppData/Local/Arduino15/packages/esp8266/hardware/esp8266/3.1.2/libraries/**",
+        "C:/Users/34618/AppData/Local/Arduino15/packages/esp8266/hardware/esp8266/3.1.2/tools/sdk/include",
+        "C:/Users/34618/AppData/Local/Arduino15/packages/esp8266/hardware/esp8266/3.1.2/tools/sdk/lwip2/include",
+        "C:/Users/34618/AppData/Local/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include",
+        "C:/Users/34618/AppData/Local/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/lib/gcc/xtensa-lx106-elf/10.3.0/include",
+        "C:/Users/34618/AppData/Local/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/lib/gcc/xtensa-lx106-elf/10.3.0/include-fixed"
+      ],
+      "defines": [
+        "ARDUINO=10819",
+        "ARDUINO_ESP8266_GENERIC",
+        "ESP8266"
+      ],
+      "compilerPath": "C:/Users/34618/AppData/Local/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/bin/xtensa-lx106-elf-g++.exe",
+      "cStandard": "gnu11",
+      "cppStandard": "gnu++17",
+      "intelliSenseMode": "gcc-x86"
+    }
+  ],
+  "version": 4
+}
