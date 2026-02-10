@@ -32,7 +32,17 @@ def main():
 
         r = requests.get(url, auth=("API_NAME", "API_TOKEN"))
         print(r)
-        j = r.json()
+        if not r.ok:
+            print("HTTP error: {} {}".format(r.status_code, r.text.strip()))
+            print()
+            continue
+        try:
+            j = r.json()
+        except ValueError:
+            print("Response was not JSON.")
+            print(r.text.strip())
+            print()
+            continue
 
         if j.get("success") is True:
             lat_long = str(j["results"][0]["trilong"]) + "," + str(j["results"][0]["trilat"])
