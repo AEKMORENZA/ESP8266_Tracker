@@ -1,20 +1,27 @@
 #include "ESP8266WiFi.h"
 #include "ESP8266HTTPClient.h"
+#include "WiFiClientSecureBearSSL.h"
 #include "FS.h"
+#include <time.h>
 
 // --- Configuración del dispositivo ---
 const char* DEVICE_ID = "esp8266-tracker-01";
-const char* PREFERRED_SSID = "MACARENA";        // Si se define, se intentará primero esta red.
-const char* PREFERRED_PASSWORD = "DEADBEEF";    // Password de PREFERRED_SSID (vacío si es abierta).
-const char* SERVER_URL = "http://tu-servidor-remoto.example/api/bssids";
+const char* PREFERRED_SSID = "Cat S62 Pro_1674";        // Si se define, se intentará primero esta red.
+const char* PREFERRED_PASSWORD = "1234Morenza";    // Password de PREFERRED_SSID (vacío si es abierta).
+const char* SERVER_URL = "https://webhook.site/0c423093-06f6-48b9-a98c-9df6d5fe1549";
 
-const int MAX_BSSIDS_CACHE = 20;
+const int MAX_BSSIDS_SESSION = 1000;
 const int SCAN_RSSI_THRESHOLD = -70;
 const int CONNECT_RSSI_THRESHOLD = -85;
 const unsigned long LOOP_DELAY_MS = 5000;
 
-String lastBSSIDs[MAX_BSSIDS_CACHE] = {};
-int cont = 0;
+String sessionBSSIDs[MAX_BSSIDS_SESSION] = {};
+int sessionCount = 0;
+bool ntpSynced = false;
+unsigned long lastNtpAttemptMs = 0;
+const unsigned long NTP_RETRY_INTERVAL_MS = 60000;
+const unsigned long NTP_WAIT_MS = 15000;
+const time_t NTP_EPOCH_MIN = 1600000000;
 
 void leerSerie();
 void procesarComando(String cmd);
@@ -22,6 +29,11 @@ void imprimirAyuda();
 void borrarArchivo(const String& filePath);
 void imprimirArchivo(const String& filePath);
 void registrarBSSIDSiNueva(const String& bssid, File& file);
+bool yaVistaEnSesion(const String& bssid);
+bool intentarSyncNTP();
+unsigned long obtenerTimestamp(bool& esNtp);
+bool hayInternet();
+void intentarSyncNtpNoBloqueante();
 bool hayBssidsPendientes(const String& filePath);
 String construirPayloadJSON(const String& filePath);
 void enviarPendientesAServidor();
@@ -96,26 +108,38 @@ void imprimirArchivo(const String& filePath) {
   f.close();
 }
 
+bool yaVistaEnSesion(const String& bssid) {
+  for (int i = 0; i < sessionCount; i++) {
+    if (bssid == sessionBSSIDs[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void registrarBSSIDSiNueva(const String& bssid, File& file) {
-  bool yaVista = false;
-  for (int i = 0; i < MAX_BSSIDS_CACHE; i++) {
-    if (bssid == lastBSSIDs[i]) {
-      yaVista = true;
-      break;
-    }
+  if (yaVistaEnSesion(bssid)) {
+    return;
   }
 
-  if (!yaVista) {
-    lastBSSIDs[cont] = bssid;
-    cont++;
-    if (cont >= MAX_BSSIDS_CACHE) {
-      cont = 0;
-    }
-
-    file.println(bssid);
-    Serial.print("BSSID guardada: ");
-    Serial.println(bssid);
+  if (sessionCount < MAX_BSSIDS_SESSION) {
+    sessionBSSIDs[sessionCount] = bssid;
+    sessionCount++;
   }
+
+  bool esNtp = false;
+  unsigned long ts = obtenerTimestamp(esNtp);
+  file.print(bssid);
+  file.print(",");
+  file.print(ts);
+  file.print(",");
+  file.println(esNtp ? "1" : "0");
+  Serial.print("BSSID guardada: ");
+  Serial.print(bssid);
+  Serial.print(" @ ");
+  Serial.print(ts);
+  Serial.print(" NTP=");
+  Serial.println(esNtp ? "1" : "0");
 }
 
 bool hayBssidsPendientes(const String& filePath) {
@@ -156,7 +180,23 @@ String construirPayloadJSON(const String& filePath) {
     if (!first) {
       payload += ",";
     }
-    payload += "\"" + line + "\"";
+    int commaIdx1 = line.indexOf(',');
+    int commaIdx2 = (commaIdx1 >= 0) ? line.indexOf(',', commaIdx1 + 1) : -1;
+    String bssid = line;
+    String ts = "0";
+    String ntp = "0";
+    if (commaIdx1 > 0) {
+      bssid = line.substring(0, commaIdx1);
+      if (commaIdx2 > commaIdx1) {
+        ts = line.substring(commaIdx1 + 1, commaIdx2);
+        ntp = line.substring(commaIdx2 + 1);
+      } else {
+        ts = line.substring(commaIdx1 + 1);
+      }
+      ts.trim();
+      ntp.trim();
+    }
+    payload += "{\"bssid\":\"" + bssid + "\",\"ts\":" + ts + ",\"ntp\":" + ntp + "}";
     first = false;
   }
 
@@ -229,6 +269,56 @@ bool conectarAIndiceRed(int networkIndex) {
   return false;
 }
 
+bool intentarSyncNTP() {
+  unsigned long nowMs = millis();
+  if (ntpSynced) {
+    return true;
+  }
+  if (nowMs - lastNtpAttemptMs < NTP_RETRY_INTERVAL_MS) {
+    return false;
+  }
+  lastNtpAttemptMs = nowMs;
+
+  configTime(0, 0, "time.google.com", "pool.ntp.org", "time.cloudflare.com");
+  unsigned long initialization = millis();
+  while (millis() - initialization < NTP_WAIT_MS) {
+    time_t now = time(nullptr);
+    if (now > NTP_EPOCH_MIN) {
+      ntpSynced = true;
+      return true;
+    }
+    delay(250);
+  }
+  return false;
+}
+
+unsigned long obtenerTimestamp(bool& esNtp) {
+  time_t now = time(nullptr);
+  if (now > NTP_EPOCH_MIN) {
+    esNtp = true;
+    return (unsigned long)now;
+  }
+  esNtp = false;
+  return millis();
+}
+
+bool hayInternet() {
+  WiFiClient testClient;
+  if (testClient.connect("8.8.8.8", 53)) {
+    testClient.stop();
+    return true;
+  }
+  return false;
+}
+
+void intentarSyncNtpNoBloqueante() {
+  if (intentarSyncNTP()) {
+    Serial.println("NTP sincronizado.");
+  } else {
+    Serial.println("NTP no disponible.");
+  }
+}
+
 void enviarPendientesAServidor() {
   const String filePath = "/BSSIDs.txt";
   if (!hayBssidsPendientes(filePath)) {
@@ -258,6 +348,17 @@ void enviarPendientesAServidor() {
     return;
   }
 
+  if (WiFi.encryptionType(idx) == ENC_TYPE_NONE) {
+    Serial.println("AP abierta. Verificando conectividad a Internet (ping 8.8.8.8)...");
+    if (!hayInternet()) {
+      Serial.println("Sin conectividad a Internet. Se reanuda escaneo.");
+      WiFi.disconnect();
+      return;
+    }
+    Serial.println("Conectividad OK.");
+  }
+  intentarSyncNtpNoBloqueante();
+
   String payload = construirPayloadJSON(filePath);
   if (payload.length() == 0) {
     Serial.println("No se pudo construir payload.");
@@ -265,7 +366,9 @@ void enviarPendientesAServidor() {
     return;
   }
 
-  WiFiClient client;
+  BearSSL::WiFiClientSecure client;
+  // TODO: Replace with a valid CA cert or fingerprint for production.
+  client.setInsecure();
   HTTPClient http;
   http.begin(client, SERVER_URL);
   http.addHeader("Content-Type", "application/json");
@@ -304,6 +407,12 @@ void loop() {
   if (Serial) {
     Serial.print("\n>>> ");
     leerSerie();
+  }
+
+  time_t now = time(nullptr);
+  if (now > NTP_EPOCH_MIN) {
+    Serial.print("NTP time: ");
+    Serial.println((unsigned long)now);
   }
 
   Serial.println("Scan start");
