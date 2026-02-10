@@ -38,3 +38,6 @@ Editar en `ESP8266_Scanner/ESP8266_Scanner.ino`:
 - Definir autenticacion robusta con el servidor remoto (token/HMAC/TLS).
 - Anadir reintentos con backoff y cola persistente mas avanzada.
 - Definir formato final de payload y contrato de API del backend.
+
+## Nota
+Test contribution commit.
