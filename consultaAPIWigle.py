@@ -1,4 +1,5 @@
 import json
+import os
 import time
 import requests
 from lxml import etree
@@ -30,7 +31,11 @@ def main():
         encoded_bssid = bssid.replace(":", "%3A")
         url += encoded_bssid
 
-        r = requests.get(url, auth=("AIDd86d951dc8ff31f95e7dd52591dc6758", "a0cc38907e4a9fbce0f0171a17fc9bb1"))
+        api_name = os.environ.get("WIGLE_API_NAME")
+        api_token = os.environ.get("WIGLE_API_TOKEN")
+        if not api_name or not api_token:
+            raise SystemExit("Missing WIGLE_API_NAME/WIGLE_API_TOKEN environment variables.")
+        r = requests.get(url, auth=(api_name, api_token))
         print(r)
         j = r.json()
 
